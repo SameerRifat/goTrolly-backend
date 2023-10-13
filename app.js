@@ -17,7 +17,8 @@ app.use(express.json());
 app.use(cookieParser());
 // app.use(cors());
 app.use(cors({
-    origin: 'https://gotrolly-app.onrender.com', // Replace with your React app's domain
+    // origin: process.env.FRONTEND_URL, // Replace with your React app's domain
+    origin: true, // Replace with your React app's domain
     credentials: true, // You might need this if you're using cookies or sessions
 }));
 // app.use(bodyParser.urlencoded({ extended: true }));
