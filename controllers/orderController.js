@@ -40,7 +40,7 @@ exports.getSingleOrder = catchAsyncErrors(async (req, res, next)=>{
 })
 // get logged in user orders
 exports.myOrders = catchAsyncErrors(async (req, res, next)=>{
-    const orders = await Order.find({user: req.user._id});
+    const orders = await Order.find({user: req.user._id, isDeleted: false });
 
     res.status(201).json({
         success: true,
@@ -49,7 +49,7 @@ exports.myOrders = catchAsyncErrors(async (req, res, next)=>{
 })
 // get all orders (admin)
 exports.getAllOrders = catchAsyncErrors(async (req, res, next)=>{
-    const orders = await Order.find();
+    const orders = await Order.find({ isDeleted: false });
     // if(orders.length <=0){
     //     return next(new ErrorHandler("No order found", 404))
     // }
@@ -81,9 +81,10 @@ exports.updateOrder = catchAsyncErrors(async (req, res, next)=>{
     if(req.body.status === "Delivered"){
         order.deliveredAt = Date.now();
     }
-    await order.save({validateBeforeSave: false})
+    const updatedOrder = await order.save({validateBeforeSave: false})
     res.status(201).json({
         success: true,
+        updatedOrder
     })
 })
 
@@ -93,18 +94,36 @@ async function updateStock(id, quantity){
     await product.save({validateBeforeSave: false});
 }
 
-// delete order (admin)
-exports.deleteOrder = catchAsyncErrors(async (req, res, next)=>{
-    const order = await Order.findById(req.params.id)
+// delete orders (admin)
+exports.deleteOrders = catchAsyncErrors(async (req, res, next)=>{
+    const { orderIds } = req.body;
 
-    if(!order){
-        return next(new ErrorHandler("No order found with this id", 404))
+    const deletedOrders = await Order.updateMany(
+        { _id: { $in: orderIds } },
+        { isDeleted: true }
+    );
+
+    if (!deletedOrders) {
+        return next(new ErrorHandler("Orders not found", 404));
     }
-    await order.remove();
+
     res.status(201).json({
         success: true,
+        deletedOrderIds: orderIds,
+        message: "Products deleted successfully",
     })
 })
+// exports.deleteOrder = catchAsyncErrors(async (req, res, next)=>{
+//     const order = await Order.findById(req.params.id)
+
+//     if(!order){
+//         return next(new ErrorHandler("No order found with this id", 404))
+//     }
+//     await order.remove();
+//     res.status(201).json({
+//         success: true,
+//     })
+// })
 // orders summary (admin)
 exports.ordersSummary = catchAsyncErrors(async (req, res, next)=>{
     const last24hrsOrder = await Order.aggregate([

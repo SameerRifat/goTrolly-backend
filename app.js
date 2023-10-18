@@ -21,7 +21,7 @@ app.use(cors({
     origin: true, // Replace with your React app's domain
     credentials: true, // You might need this if you're using cookies or sessions
 }));
-// app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.urlencoded({ extended: true }));
 // app.use(fileUpload());
 
 const { fileURLToPath } = require('url');
@@ -47,16 +47,16 @@ app.use("/public/color_images", express.static(path.join(__dirname, '/public/col
 // Route imports
 const product = require('./routes/productRoutes');
 const user = require('./routes/userRoutes');
-// const order = require('./routes/orderRoutes');
-// const payment = require('./routes/paymentRoutes');
+const order = require('./routes/orderRoutes');
+const payment = require('./routes/paymentRoutes');
 const category = require('./routes/categoryRoutes')
 const brand = require('./routes/brandRoutes')
 const productType = require('./routes/productTypeRoutes')
 
 app.use('/api/v1', product);
 app.use('/api/v1', user);
-// app.use('/api/v1', order);
-// app.use('/api/v1', payment);
+app.use('/api/v1', order);
+app.use('/api/v1', payment);
 app.use('/api/v1', category);
 app.use('/api/v1', brand);
 app.use('/api/v1', productType);

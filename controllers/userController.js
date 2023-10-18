@@ -170,25 +170,24 @@ exports.updatePassword = catchAsyncErrors(async (req, res, next) => {
 })
 // update user profile
 exports.updateProfile = catchAsyncErrors(async (req, res, next) => {
-    // console.log(req.body)
     const newUserData = {
         name: req.body.name,
         email: req.body.email
     }
-    if (req.body.avatar !== 'undefined') {
-        const user = await User.findById(req.user.id)
-        const imageId = user.avatar.public_id
-        await cloudinary.v2.uploader.destroy(imageId)
-        const myCloud = await cloudinary.v2.uploader.upload(req.body.avatar, {
-            folder: "avatars",
-            width: 150,
-            crop: "scale"
-        })
-        newUserData.avatar = {
-            public_id: myCloud.public_id,
-            url: myCloud.secure_url
-        }
-    }
+    // if (req.body.avatar !== 'undefined') {
+    //     const user = await User.findById(req.user.id)
+    //     const imageId = user.avatar.public_id
+    //     await cloudinary.v2.uploader.destroy(imageId)
+    //     const myCloud = await cloudinary.v2.uploader.upload(req.body.avatar, {
+    //         folder: "avatars",
+    //         width: 150,
+    //         crop: "scale"
+    //     })
+    //     newUserData.avatar = {
+    //         public_id: myCloud.public_id,
+    //         url: myCloud.secure_url
+    //     }
+    // }
 
     const user = await User.findByIdAndUpdate(req.user.id, newUserData, {
         new: true,
@@ -202,7 +201,7 @@ exports.updateProfile = catchAsyncErrors(async (req, res, next) => {
 })
 // get all users
 exports.getAllUsers = catchAsyncErrors(async (req, res, next) => {
-    const users = await User.find();
+    const users = await User.find({ isDeleted: false });
     if (!users) {
         return next(new ErrorHandler("No User found", 400));
     }
@@ -223,35 +222,56 @@ exports.getSigleUser = catchAsyncErrors(async (req, res, next) => {
     })
 })
 // update user role (admin)
-exports.updateUserRole = catchAsyncErrors(async (req, res, next) => {
-    const newUserData = {
-        name: req.body.name,
-        email: req.body.email,
-        role: req.body.role
-    }
-    await User.findByIdAndUpdate(req.params.id, newUserData, {
-        new: true,
-        runValidators: true,
-        useFindAndModify: false
-    })
+exports.updateUsersRole = catchAsyncErrors(async (req, res, next) => {
+    const { userIds, userRole } = req.body;
 
-    res.status(200).json({
-        success: true
+    const updatedUsers = await User.updateMany(
+        { _id: { $in: userIds } },
+        { role: userRole }
+    );
+    if (!updatedUsers) {
+        return next(new ErrorHandler("Users not found", 404));
+    }
+
+    res.status(201).json({
+        success: true,
+        userIds,
+        userRole,
+        message: "Role updated successfully",
     })
 })
+// update user role (admin)
+// exports.updateUserRole = catchAsyncErrors(async (req, res, next) => {
+//     const newUserData = {
+//         name: req.body.name,
+//         email: req.body.email,
+//         role: req.body.role
+//     }
+//     await User.findByIdAndUpdate(req.params.id, newUserData, {
+//         new: true,
+//         runValidators: true,
+//         useFindAndModify: false
+//     })
+
+//     res.status(200).json({
+//         success: true
+//     })
+// })
 // delete user (admin)
-exports.deleteUser = catchAsyncErrors(async (req, res, next) => {
-    const user = await User.findById(req.params.id);
-    if (!user) {
-        return next(new ErrorHandler(`User does not exist with this id: ${req.params.id}`, 400));
+exports.deleteUsers = catchAsyncErrors(async (req, res, next) => {
+    const { userIds } = req.body;
+    const deletedUsers = await User.updateMany(
+        { _id: { $in: userIds } },
+        { isDeleted: true }
+    );
+
+    if (!deletedUsers) {
+        return next(new ErrorHandler("Users not found", 404));
     }
 
-    const imageId = user.avatar.public_id
-    await cloudinary.v2.uploader.destroy(imageId)
-
-    await user.remove();
     res.status(200).json({
         success: true,
-        message: "User deleted successfully"
-    })
+        deletedUserIds: userIds,
+        message: "Users deleted successfully",
+    });
 })
